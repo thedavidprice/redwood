@@ -28,6 +28,7 @@ export interface BrowserTargetPaths {
 }
 
 export interface Paths {
+  cache: string
   base: string
   web: BrowserTargetPaths
   api: NodeTargetPaths
@@ -63,8 +64,8 @@ const PATH_WEB_DIR_CONFIG_POSTCSS = 'web/config/postcss.config.js'
 /**
  * Search the parent directories for the Redwood configuration file.
  */
-export const getConfigPath = (): string => {
-  const configPath = findUp(CONFIG_FILE_NAME)
+export const getConfigPath = (cwd: string = __dirname): string => {
+  const configPath = findUp(CONFIG_FILE_NAME, { cwd })
   if (!configPath) {
     throw new Error(
       `Could not find a "${CONFIG_FILE_NAME}" file, are you sure you're in a Redwood project?`
@@ -78,6 +79,10 @@ export const getConfigPath = (): string => {
  */
 export const getBaseDir = (configPath: string = getConfigPath()): string => {
   return path.dirname(configPath)
+}
+
+export const getBaseDirFromFile = (file: string) => {
+  return getBaseDir(getConfigPath(path.dirname(file)))
 }
 
 /**
@@ -103,8 +108,17 @@ export const resolveFile = (
 export const getPaths = (BASE_DIR: string = getBaseDir()): Paths => {
   const routes = resolveFile(path.join(BASE_DIR, PATH_WEB_ROUTES)) as string
 
+  // We store ambient type declerations and our test database over here.
+  const cache = path.join(BASE_DIR, 'node_modules', '.redwood')
+  try {
+    fs.mkdirSync(cache)
+  } catch (e) {
+    // noop
+  }
+
   return {
     base: BASE_DIR,
+    cache,
     api: {
       base: path.join(BASE_DIR, 'api'),
       db: path.join(BASE_DIR, PATH_API_DIR_DB),
@@ -182,4 +196,28 @@ export const processPagesDir = (
     }
   })
   return deps
+}
+
+/**
+ * Converts Windows-style paths to Posix-style
+ * C:\Users\Bob\dev\Redwood -> /c/Users/Bob/dev/Redwood
+ *
+ * The conversion only happens on Windows systems, and only for paths that are
+ * not already Posix-style
+ *
+ * @param path Filesystem path
+ */
+export const ensurePosixPath = (path: string) => {
+  let posixPath = path
+
+  if (process.platform === 'win32') {
+    if (/^[A-Z]:\\/.test(path)) {
+      const drive = path[0].toLowerCase()
+      posixPath = `/${drive}/${path.substring(3)}`
+    }
+
+    posixPath = posixPath.replace(/\\/g, '/')
+  }
+
+  return posixPath
 }

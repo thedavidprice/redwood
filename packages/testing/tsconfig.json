@@ -5,14 +5,9 @@
     "baseUrl": ".",
     "rootDir": "src",
     "outDir": "dist",
-    "allowJs": true
   },
   "include": [
     "src"
-  ],
-  "exclude": [
-    "**/__tests__",
-    "**/__mocks__"
   ],
   "references": [
     {

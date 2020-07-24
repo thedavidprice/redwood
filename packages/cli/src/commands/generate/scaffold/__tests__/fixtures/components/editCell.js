@@ -11,7 +11,11 @@ export const QUERY = gql`
       author
       body
       image
+      isPinned
+      readTime
+      rating
       postedAt
+      metadata
     }
   }
 `
